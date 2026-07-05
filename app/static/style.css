@@ -171,7 +171,12 @@ main { padding: 1.25rem 2rem 2.5rem; }
 
 .query-layout {
   display: grid;
-  grid-template-columns: 380px 1fr;
+  /* minmax(0, 1fr), not plain 1fr: a grid track's default minimum size is
+     "auto" (its content's max-content width), so a wide unwrapped results
+     table would otherwise force this whole column - and everything in it,
+     including the graph canvas - to grow to match, pushing the graph far
+     outside the visible viewport instead of actually being invisible. */
+  grid-template-columns: 380px minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -216,6 +221,7 @@ main { padding: 1.25rem 2rem 2.5rem; }
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  min-width: 0; /* same overflow-blowout guard as .query-layout above */
 }
 .query-results .graph-pane { height: 320px; }
 

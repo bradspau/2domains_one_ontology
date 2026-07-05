@@ -204,7 +204,7 @@ app/
   sparql_queries.py         the canned SPARQL queries used by the Query Console
   sparql_endpoint.py        minimal SPARQL 1.1 Protocol endpoint, one per domain
   routes.py                 Flask API endpoints (see below)
-  static/                   single-page frontend (vanilla JS + vis-network via CDN)
+  static/                   single-page frontend (vanilla JS + vendored vis-network)
 run.py                      entry point — starts the Flask dev server (the UI, port 5000)
 run_endpoints.py            starts the two domains as separate real SPARQL endpoints
 requirements.txt            rdflib, Flask
@@ -250,7 +250,7 @@ triple in the queried graph whose subject *and* object are both touched is
 returned as a highlighted edge — that's what lights up the path in the
 Query Console's graph canvas.
 
-**Frontend (`app/static/`, vanilla JS + vis-network via CDN).** A single
+**Frontend (`app/static/`, vanilla JS + vendored vis-network).** A single
 page with five tabs. The four graph tabs each fetch their `/api/graphs/...`
 data once on load and render it with vis-network, coloring nodes by owning
 domain (derived from the IRI's hostname) and shaping them by RDF type. The

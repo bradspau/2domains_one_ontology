@@ -23,6 +23,12 @@ const TYPE_SHAPES = {
 };
 
 const networks = {};
+const graphCache = {};
+const NETWORK_OPTIONS = {
+  physics: { stabilization: true, barnesHut: { springLength: 140 } },
+  interaction: { hover: true },
+  edges: { smooth: { type: "dynamic" } },
+};
 
 function shapeFor(type) {
   return TYPE_SHAPES[type] || "dot";
@@ -69,34 +75,42 @@ function renderGraph(canvasId, data, highlight) {
     };
   });
 
+  // Cache the transformed data and (re)mount a brand-new vis.Network rather
+  // than reusing/feeding an existing one. vis-network measures its container
+  // at construction time; if that ever happened while the tab was hidden
+  // (display:none => 0x0), its internal view/zoom state can stay wrong even
+  // after later setData()/redraw()/fit() calls. Always building fresh from
+  // cache - both here and whenever a tab becomes visible, see setupTabs -
+  // guarantees the network is only ever constructed while its container has
+  // real dimensions.
+  graphCache[canvasId] = { nodes, edges };
+  mountNetwork(canvasId);
+}
+
+function mountNetwork(canvasId) {
+  const cached = graphCache[canvasId];
   const container = document.getElementById(canvasId);
-  const options = {
-    physics: { stabilization: true, barnesHut: { springLength: 140 } },
-    interaction: { hover: true },
-    edges: { smooth: { type: "dynamic" } },
-  };
-
-  if (networks[canvasId]) {
-    networks[canvasId].setData({ nodes, edges });
-  } else {
-    networks[canvasId] = new vis.Network(container, { nodes, edges }, options);
+  if (!cached || !container) return;
+  try {
+    if (networks[canvasId]) {
+      networks[canvasId].destroy();
+    }
+    if (typeof vis === "undefined") {
+      throw new Error("vis-network failed to load (check the CDN <script> tag / network access)");
+    }
+    networks[canvasId] = new vis.Network(container, cached, NETWORK_OPTIONS);
+    container.dataset.renderError = "";
+  } catch (err) {
+    container.dataset.renderError = String(err);
+    container.textContent = `Graph render error: ${err}`;
+    container.style.cssText = "padding:1rem;color:#c0392b;font-size:0.85rem;white-space:pre-wrap;";
+    console.error(`mountNetwork(${canvasId}) failed:`, err);
   }
-  // A network created (or fed new data) while its tab is hidden measures a
-  // 0x0 container and can end up with nodes rendered off-view even after
-  // the tab becomes visible. Re-fitting after every render, and again on
-  // tab switch (see setupTabs), keeps the view correct regardless of
-  // whether the canvas was visible at render time.
-  fitNetwork(canvasId);
 }
 
-function fitNetwork(canvasId) {
-  const network = networks[canvasId];
-  if (!network) return;
-  requestAnimationFrame(() => {
-    network.redraw();
-    network.fit();
-  });
-}
+window.addEventListener("error", (event) => {
+  console.error("Uncaught error:", event.error || event.message);
+});
 
 const TAB_CANVAS_IDS = {
   ontology: "canvas-ontology",
@@ -124,11 +138,20 @@ function setupTabs() {
       document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
-      // The tab just went from display:none to visible - any vis-network
-      // canvas inside it needs an explicit redraw/fit now that it has a
-      // real size, since it may have been created (or last updated) while
-      // hidden.
-      fitNetwork(TAB_CANVAS_IDS[btn.dataset.tab]);
+      const canvasId = TAB_CANVAS_IDS[btn.dataset.tab];
+      if (btn.dataset.tab === "query" && !graphCache[canvasId]) {
+        // First visit to the Query Console: there's nothing cached yet
+        // (the initial query is only ever run once a container is known
+        // to be visible - see the removed eager call in init()), so run
+        // it now instead of trying to mount from an empty cache.
+        runQuery();
+      } else {
+        // The tab just went from display:none to visible - rebuild its
+        // network fresh (from cache) now that the container has a real
+        // size. See the comment in renderGraph() for why this can't just
+        // be a redraw/fit on the existing instance.
+        mountNetwork(canvasId);
+      }
     });
   });
 }
@@ -231,7 +254,10 @@ async function init() {
     loadDomainTab("merged"),
   ]);
   await setupQueryConsole();
-  await runQuery();
+  // The Query Console's graph is deliberately not rendered here: doing so
+  // would construct its vis.Network while the tab is still hidden
+  // (Ontology is the default active tab). It's run lazily instead, the
+  // first time the Query Console tab is opened - see setupTabs().
 }
 
 init();
