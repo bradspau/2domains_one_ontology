@@ -431,6 +431,17 @@ python run.py
 
 Then open `http://127.0.0.1:5000`.
 
+**Stopping it:** press `Ctrl+C` in the terminal running `python run.py`
+(and, if it's running, in the terminal running `python run_endpoints.py`
+too). If a server was started in the background instead and you've lost
+track of the terminal, find and stop it by port:
+
+```bash
+lsof -ti:5000 | xargs kill   # main UI
+lsof -ti:5001 | xargs kill   # access domain endpoint (if run_endpoints.py is running)
+lsof -ti:5002 | xargs kill   # aggregation domain endpoint (if run_endpoints.py is running)
+```
+
 ## What to click
 
 1. **Ontology tab** — the shared vocabulary both domains build on.
