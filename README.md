@@ -371,6 +371,53 @@ a clean `query failed: <urlopen error [Errno 61] Connection refused>` — the
 federated version genuinely depends on the other domain's endpoint being
 reachable, unlike everything else in this demo.
 
+## Class Browser: a Protégé-style resource explorer
+
+The graph tabs and Query Console both show you the data as a *graph* —
+nodes and edges. The **Class Browser** tab shows the same data the way a
+tool like [Protégé](https://protege.stanford.edu/) (the standard OWL
+ontology editor) presents it: as a three-column drill-down of classes →
+instances → a single resource's property table. No graph rendering
+involved at all — just tables and links.
+
+1. **Column 1 — Classes.** Pick a graph from the dropdown (Ontology /
+   Access / Aggregation / Merged), and you get every distinct `rdf:type`
+   actually used *in that graph*, with an instance count. Pick "Access
+   domain only" and you'll see `OLT (1)`, `Customer (3)`, `CustomerService
+   (3)`, `ISPService (1)`, and so on — note there's no `Tier1Switch` here at
+   all, because access's file has none. Switch to "Merged" and it appears.
+2. **Column 2 — Instances.** Click a class (e.g. `OLT`) and its instances
+   appear (`OLT Central-1`).
+3. **Column 3 — Resource.** Click an instance and every property assertion
+   on it *in the currently selected graph* appears as a Predicate/Value
+   table — e.g. `OLT Central-1` shows two `hasPort` rows. Every value that's
+   an IRI is a clickable link, and clicking it re-runs this same lookup for
+   that IRI — so you can walk the whole graph purely by following links,
+   the same way you'd browse Wikipedia.
+
+The interesting part is what happens when you follow a link across a
+domain boundary. With "Access domain only" still selected, click into
+`OLT Central-1` → `OLT Central-1 / NT-1` → follow its `connectsTo` value.
+You land on `t1-sw-a-p-olt1` with:
+- **no type shown** ("no type asserted in this graph"),
+- **an empty Properties table**,
+- **a "referenced but not defined here" badge**, and
+- **one row under "Referenced by"** — `OLT Central-1 / NT-1 — connectsTo` —
+  linking you right back where you came from.
+
+That's the exact same external/phantom-node concept as the dashed/gray
+nodes on the graph tabs, just represented as an ordinary (if suspiciously
+empty) row of table data instead of a node shape. Switch the graph dropdown
+to "Merged" and click the same resource again: now it has a real type
+(`SwitchPort`), a label, and its own outgoing properties — because this
+time you're looking at the union, where aggregation's definition of that
+same IRI is actually present.
+
+Backed by three endpoints in `app/browse.py` (`GET
+/api/browse/<source>/classes`, `.../instances?class=<iri>`, and
+`.../resource?iri=<iri>`) — see [How it works](#how-it-works) above for the
+implementation details.
+
 ## Running it
 
 The project's `.venv` already exists but is empty:
@@ -408,14 +455,11 @@ Then open `http://127.0.0.1:5000`.
      instead of visually.
    - **⚡ Federated path trace (real SERVICE call)** — see below; requires a
      second terminal running `run_endpoints.py`.
-6. **Class Browser** — pick "Access domain only," click the **OLT** class,
-   click **OLT Central-1**, and its full property table appears on the
-   right. Now click through to one of its ports, then follow
-   `net:connectsTo` — you'll land on `t1-sw-a-p-olt1` with an empty
-   Properties table, a "referenced but not defined here" badge, and one
-   entry under "Referenced by" pointing back at the NT port you came from.
-   That's the exact same external-reference concept as the dashed/gray
-   nodes, seen as plain rows in a table instead of graph shapes.
+6. **Class Browser** — a Protégé-style classes → instances → property-table
+   view of whichever graph you pick, with every IRI value clickable. See
+   [Class Browser: a Protégé-style resource explorer](#class-browser-a-protégé-style-resource-explorer)
+   below for a full walkthrough, including the same external-reference
+   concept shown as plain table rows instead of graph shapes.
 
 There's no caching layer anywhere in the backend: every request re-parses the
 relevant `.ttl` file straight off disk. Try editing `data/access/access.ttl`
