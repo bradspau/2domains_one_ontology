@@ -1,0 +1,56 @@
+@prefix net:    <http://example.org/ns/network#> .
+@prefix agg:    <http://aggregation.example.org/id/> .
+@prefix access: <http://access.example.org/id/> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+
+# ---------------------------------------------------------------------------
+# AGGREGATION DOMAIN - owned and maintained entirely by the aggregation team.
+#
+# This file only ever asserts facts about resources under the agg: namespace.
+# The `access:` prefix is declared above purely so this file can write a
+# compact reference to the customer services it switches on - services that
+# the access domain minted and owns. The aggregation team never sees or
+# stores the customer/ONT records behind those services; it only needs to
+# know their IRIs to say which ones a given port carries.
+# ---------------------------------------------------------------------------
+
+# --- Tier-1 Switch A: the one actually carrying the OLT's traffic ------
+
+agg:t1-sw-a a net:Tier1Switch, net:Switch, net:Device ;
+    rdfs:label "Tier-1 Switch A" ;
+    net:hasPort agg:t1-sw-a-p-olt1, agg:t1-sw-a-p-uplink .
+
+agg:t1-sw-a-p-olt1 a net:SwitchPort ;
+    rdfs:label "T1-SW-A / Port to OLT Central-1" ;
+    net:carriesService access:svc-1, access:svc-2, access:svc-3 .
+
+agg:t1-sw-a-p-uplink a net:SwitchPort ;
+    rdfs:label "T1-SW-A / Uplink Port" ;
+    net:connectsTo agg:t2-sw-p-a .
+
+# --- Tier-1 Switch B: idle/spare, not currently serving any access site -
+
+agg:t1-sw-b a net:Tier1Switch, net:Switch, net:Device ;
+    rdfs:label "Tier-1 Switch B" ;
+    net:hasPort agg:t1-sw-b-p-spare, agg:t1-sw-b-p-uplink .
+
+agg:t1-sw-b-p-spare a net:SwitchPort ;
+    rdfs:label "T1-SW-B / Spare Port (unused)" .
+
+agg:t1-sw-b-p-uplink a net:SwitchPort ;
+    rdfs:label "T1-SW-B / Uplink Port" ;
+    net:connectsTo agg:t2-sw-p-b .
+
+# --- Tier-2 Switch: aggregates both Tier-1 switches, exposes handoff ---
+
+agg:t2-sw a net:Tier2Switch, net:Switch, net:Device ;
+    rdfs:label "Tier-2 Switch" ;
+    net:hasPort agg:t2-sw-p-a, agg:t2-sw-p-b, agg:t2-sw-p-handoff ;
+    net:hasHandoffPoint agg:t2-sw-p-handoff .
+
+agg:t2-sw-p-a a net:SwitchPort ; rdfs:label "T2-SW / Port to T1-SW-A" .
+agg:t2-sw-p-b a net:SwitchPort ; rdfs:label "T2-SW / Port to T1-SW-B" .
+
+agg:t2-sw-p-handoff a net:SwitchPort ;
+    rdfs:label "T2-SW / Customer Handoff to ISP-CORE" .

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Autonomous Domains (Each Own Their Database), One Ontology and One Logical Database</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <h1>Autonomous Domains (Each Own Their Database), One Ontology and One Logical Database</h1>
+  <p class="subtitle">
+    The Access domain and the Aggregation domain each own and edit their own
+    Turtle file. Neither reads the other's database. Yet because both use the
+    same shared ontology and IRI naming convention, their data merges into a
+    single queryable graph with nothing more than a union.
+  </p>
+</header>
+
+<nav id="tabs">
+  <button class="tab-btn active" data-tab="ontology">Ontology</button>
+  <button class="tab-btn" data-tab="access">Access Domain</button>
+  <button class="tab-btn" data-tab="aggregation">Aggregation Domain</button>
+  <button class="tab-btn" data-tab="merged">Merged Graph</button>
+  <button class="tab-btn" data-tab="query">Query Console</button>
+</nav>
+
+<div id="legend" class="legend">
+  <div class="legend-group">
+    <span class="legend-heading">Shape = type</span>
+    <span class="legend-item"><span class="legend-shape box"></span>Device (OLT / ONT / Switch)</span>
+    <span class="legend-item"><span class="legend-shape ellipse"></span>Port (PON / NT / Switch)</span>
+    <span class="legend-item"><span class="legend-shape dot"></span>Customer</span>
+    <span class="legend-item"><span class="legend-shape diamond"></span>Customer Service</span>
+    <span class="legend-item"><span class="legend-shape square"></span>ISP Service</span>
+    <span class="legend-item"><span class="legend-shape triangle"></span>Class (Ontology tab)</span>
+    <span class="legend-item"><span class="legend-shape star">★</span>Property (Ontology tab)</span>
+    <span class="legend-item"><span class="legend-shape hexagon"></span>Ontology (Ontology tab)</span>
+  </div>
+  <div class="legend-group">
+    <span class="legend-heading">Color = owning domain</span>
+    <span class="legend-item"><span class="legend-swatch" style="background:#2f7de1"></span>Access</span>
+    <span class="legend-item"><span class="legend-swatch" style="background:#d9822b"></span>Aggregation</span>
+    <span class="legend-item"><span class="legend-swatch" style="background:#6c4fd6"></span>Ontology</span>
+    <span class="legend-item"><span class="legend-swatch external"></span>Referenced but not defined here</span>
+  </div>
+</div>
+
+<main>
+
+  <section class="tab-panel active" id="panel-ontology">
+    <p class="panel-blurb">
+      The shared TBox — owned by <em>neither</em> domain. Both domains agree
+      to describe their own resources using these classes and properties.
+    </p>
+    <div class="split">
+      <div class="graph-pane"><div class="graph-canvas" id="canvas-ontology"></div></div>
+      <div class="source-pane">
+        <h3>ontology/network.ttl</h3>
+        <pre id="turtle-ontology"></pre>
+      </div>
+    </div>
+    <div class="stats" id="stats-ontology"></div>
+  </section>
+
+  <section class="tab-panel" id="panel-access">
+    <p class="panel-blurb">
+      Owned entirely by the access team. Dashed/gray nodes are IRIs this file
+      <em>references</em> (e.g. an aggregation switch port) but does not
+      <em>define</em> — that resource belongs to the other domain.
+    </p>
+    <div class="split">
+      <div class="graph-pane"><div class="graph-canvas" id="canvas-access"></div></div>
+      <div class="source-pane">
+        <h3>data/access/access.ttl</h3>
+        <pre id="turtle-access"></pre>
+      </div>
+    </div>
+    <div class="stats" id="stats-access"></div>
+  </section>
+
+  <section class="tab-panel" id="panel-aggregation">
+    <p class="panel-blurb">
+      Owned entirely by the aggregation team. Dashed/gray nodes here are the
+      access-minted customer-service IRIs it switches on, without owning the
+      customer records behind them.
+    </p>
+    <div class="split">
+      <div class="graph-pane"><div class="graph-canvas" id="canvas-aggregation"></div></div>
+      <div class="source-pane">
+        <h3>data/aggregation/aggregation.ttl</h3>
+        <pre id="turtle-aggregation"></pre>
+      </div>
+    </div>
+    <div class="stats" id="stats-aggregation"></div>
+  </section>
+
+  <section class="tab-panel" id="panel-merged">
+    <p class="panel-blurb">
+      No merge script, no ETL, no shared database — this is <code>access.ttl
+      + aggregation.ttl</code>, unioned. Every previously dashed/gray node
+      now resolves to a real definition, contributed by whichever domain
+      owns it.
+    </p>
+    <div class="split">
+      <div class="graph-pane"><div class="graph-canvas" id="canvas-merged"></div></div>
+      <div class="source-pane">
+        <h3>access.ttl ∪ aggregation.ttl</h3>
+        <pre id="turtle-merged"></pre>
+      </div>
+    </div>
+    <div class="stats" id="stats-merged"></div>
+  </section>
+
+  <section class="tab-panel" id="panel-query">
+    <p class="panel-blurb">
+      Run a SPARQL query and watch it resolve across both domains' data at
+      once. The canvas on the right shows whichever graph the query actually
+      ran against, with every touched node/edge highlighted.
+    </p>
+    <div class="query-layout">
+      <div class="query-controls">
+        <label for="query-picker">Canned query</label>
+        <select id="query-picker"></select>
+        <p id="query-description" class="query-description"></p>
+
+        <label for="query-source">Graph to query</label>
+        <select id="query-source">
+          <option value="merged">Merged (access + aggregation)</option>
+          <option value="access">Access domain only</option>
+          <option value="aggregation">Aggregation domain only</option>
+          <option value="ontology">Ontology only</option>
+        </select>
+
+        <label for="query-text">SPARQL</label>
+        <textarea id="query-text" rows="16" spellcheck="false"></textarea>
+
+        <button id="run-query">Run query</button>
+        <div id="query-error" class="query-error"></div>
+      </div>
+      <div class="query-results">
+        <div class="graph-pane"><div class="graph-canvas" id="canvas-query"></div></div>
+        <div id="results-table-wrap">
+          <table id="results-table"></table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

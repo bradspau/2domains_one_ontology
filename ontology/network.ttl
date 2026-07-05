@@ -1,0 +1,89 @@
+@prefix net:  <http://example.org/ns/network#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ---------------------------------------------------------------------------
+# Shared network ontology (TBox).
+#
+# This vocabulary is owned by NEITHER the access domain nor the aggregation
+# domain. Both domains independently agree to describe their own resources
+# using these classes and properties. That agreement - not a shared database -
+# is what lets their separately-authored data merge into one coherent graph.
+# ---------------------------------------------------------------------------
+
+<http://example.org/ns/network> a owl:Ontology ;
+    rdfs:label "Access/Aggregation Network Ontology" .
+
+# --- Classes ----------------------------------------------------------------
+
+net:Device a rdfs:Class ; rdfs:label "Device" .
+net:OLT a rdfs:Class ; rdfs:subClassOf net:Device ; rdfs:label "OLT" .
+net:ONT a rdfs:Class ; rdfs:subClassOf net:Device ; rdfs:label "ONT" .
+net:Switch a rdfs:Class ; rdfs:subClassOf net:Device ; rdfs:label "Switch" .
+net:Tier1Switch a rdfs:Class ; rdfs:subClassOf net:Switch ; rdfs:label "Tier-1 Switch" .
+net:Tier2Switch a rdfs:Class ; rdfs:subClassOf net:Switch ; rdfs:label "Tier-2 Switch" .
+
+net:Port a rdfs:Class ; rdfs:label "Port" .
+net:PONPort a rdfs:Class ; rdfs:subClassOf net:Port ; rdfs:label "PON Port" .
+net:NTPort a rdfs:Class ; rdfs:subClassOf net:Port ; rdfs:label "NT Port" .
+net:SwitchPort a rdfs:Class ; rdfs:subClassOf net:Port ; rdfs:label "Switch Port" .
+
+net:Customer a rdfs:Class ; rdfs:label "Customer" .
+net:CustomerService a rdfs:Class ; rdfs:label "Customer Service" .
+
+# The provider-level service on an NT port's trunk, identified by its
+# 802.1ad S-tag - the outer QinQ tag. One ISPService can have many
+# CustomerServices nested under it (one per inner C-tag).
+net:ISPService a rdfs:Class ; rdfs:label "ISP Service" .
+
+# --- Object properties --------------------------------------------------
+
+net:hasPort a rdf:Property ;
+    rdfs:domain net:Device ; rdfs:range net:Port ;
+    rdfs:label "has port" .
+
+net:servesONT a rdf:Property ;
+    rdfs:domain net:PONPort ; rdfs:range net:ONT ;
+    rdfs:label "serves ONT" .
+
+net:connectsTo a rdf:Property ;
+    rdfs:domain net:Port ; rdfs:range net:Port ;
+    rdfs:label "connects to" .
+
+net:carriesService a rdf:Property ;
+    rdfs:domain net:SwitchPort ; rdfs:range net:CustomerService ;
+    rdfs:label "carries service" .
+
+net:forCustomer a rdf:Property ;
+    rdfs:domain net:CustomerService ; rdfs:range net:Customer ;
+    rdfs:label "for customer" .
+
+net:carriesISPService a rdf:Property ;
+    rdfs:domain net:NTPort ; rdfs:range net:ISPService ;
+    rdfs:label "carries ISP service" .
+
+net:partOfISPService a rdf:Property ;
+    rdfs:domain net:CustomerService ; rdfs:range net:ISPService ;
+    rdfs:label "part of ISP service" .
+
+net:hasONT a rdf:Property ;
+    rdfs:domain net:Customer ; rdfs:range net:ONT ;
+    rdfs:label "has ONT" .
+
+net:hasHandoffPoint a rdf:Property ;
+    rdfs:domain net:Tier2Switch ; rdfs:range net:SwitchPort ;
+    rdfs:label "has handoff point" .
+
+# --- Datatype properties -----------------------------------------------
+
+net:hasSTag a rdf:Property ;
+    rdfs:domain net:ISPService ; rdfs:range xsd:integer ;
+    rdfs:label "has S-tag" ;
+    rdfs:comment "Valid range: 10-4000." .
+
+net:hasCTag a rdf:Property ;
+    rdfs:domain net:CustomerService ; rdfs:range xsd:integer ;
+    rdfs:label "has C-tag" ;
+    rdfs:comment "Valid range: 10-4000." .

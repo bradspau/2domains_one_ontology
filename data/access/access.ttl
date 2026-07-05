@@ -1,0 +1,78 @@
+@prefix net:    <http://example.org/ns/network#> .
+@prefix access: <http://access.example.org/id/> .
+@prefix agg:    <http://aggregation.example.org/id/> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+
+# ---------------------------------------------------------------------------
+# ACCESS DOMAIN - owned and maintained entirely by the access team.
+#
+# This file only ever asserts facts about resources under the access:
+# namespace. Note the `agg:` prefix is declared above purely so this file can
+# write a compact reference to a port that the aggregation domain owns and
+# defines elsewhere (see net:connectsTo below) - the access team knows the
+# aggregation domain's IRI naming convention, but does not own or define
+# that resource.
+# ---------------------------------------------------------------------------
+
+# --- OLT and its ports -------------------------------------------------
+
+access:olt-central-1 a net:OLT, net:Device ;
+    rdfs:label "OLT Central-1" ;
+    net:hasPort access:olt-central-1-pon-1, access:olt-central-1-nt-1 .
+
+access:olt-central-1-pon-1 a net:PONPort ;
+    rdfs:label "OLT Central-1 / PON-1" ;
+    net:servesONT access:ont-1001, access:ont-1002, access:ont-1003 .
+
+access:olt-central-1-nt-1 a net:NTPort ;
+    rdfs:label "OLT Central-1 / NT-1" ;
+    net:carriesISPService access:isp-service-100 ;
+    net:connectsTo agg:t1-sw-a-p-olt1 .
+
+# --- ISP service (802.1ad S-tag) - the provider-level service on this --
+# --- trunk that every CustomerService below is nested under ------------
+
+access:isp-service-100 a net:ISPService ;
+    rdfs:label "ISP Service (S-tag 100)" ;
+    net:hasSTag 100 .
+
+# --- ONTs at customer premises ------------------------------------------
+
+access:ont-1001 a net:ONT, net:Device ; rdfs:label "ONT-1001" .
+access:ont-1002 a net:ONT, net:Device ; rdfs:label "ONT-1002" .
+access:ont-1003 a net:ONT, net:Device ; rdfs:label "ONT-1003" .
+
+# --- Customers (anonymized - identified only by a customer number) -----
+
+access:cust-1 a net:Customer ;
+    rdfs:label "Customer-1" ;
+    net:hasONT access:ont-1001 .
+
+access:cust-2 a net:Customer ;
+    rdfs:label "Customer-2" ;
+    net:hasONT access:ont-1002 .
+
+access:cust-3 a net:Customer ;
+    rdfs:label "Customer-3" ;
+    net:hasONT access:ont-1003 .
+
+# --- Customer services (C-tag per customer, under the trunk's S-tag) ---
+
+access:svc-1 a net:CustomerService ;
+    rdfs:label "Service-1" ;
+    net:forCustomer access:cust-1 ;
+    net:partOfISPService access:isp-service-100 ;
+    net:hasCTag 201 .
+
+access:svc-2 a net:CustomerService ;
+    rdfs:label "Service-2" ;
+    net:forCustomer access:cust-2 ;
+    net:partOfISPService access:isp-service-100 ;
+    net:hasCTag 202 .
+
+access:svc-3 a net:CustomerService ;
+    rdfs:label "Service-3" ;
+    net:forCustomer access:cust-3 ;
+    net:partOfISPService access:isp-service-100 ;
+    net:hasCTag 203 .
