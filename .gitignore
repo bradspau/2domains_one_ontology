@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Claude Code project-guidance files (not meant for the published repo)
+CLAUDE.md
+.claude/
