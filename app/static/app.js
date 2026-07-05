@@ -81,7 +81,30 @@ function renderGraph(canvasId, data, highlight) {
   } else {
     networks[canvasId] = new vis.Network(container, { nodes, edges }, options);
   }
+  // A network created (or fed new data) while its tab is hidden measures a
+  // 0x0 container and can end up with nodes rendered off-view even after
+  // the tab becomes visible. Re-fitting after every render, and again on
+  // tab switch (see setupTabs), keeps the view correct regardless of
+  // whether the canvas was visible at render time.
+  fitNetwork(canvasId);
 }
+
+function fitNetwork(canvasId) {
+  const network = networks[canvasId];
+  if (!network) return;
+  requestAnimationFrame(() => {
+    network.redraw();
+    network.fit();
+  });
+}
+
+const TAB_CANVAS_IDS = {
+  ontology: "canvas-ontology",
+  access: "canvas-access",
+  aggregation: "canvas-aggregation",
+  merged: "canvas-merged",
+  query: "canvas-query",
+};
 
 async function loadDomainTab(source) {
   const res = await fetch(`/api/graphs/${source}`);
@@ -101,6 +124,11 @@ function setupTabs() {
       document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
+      // The tab just went from display:none to visible - any vis-network
+      // canvas inside it needs an explicit redraw/fit now that it has a
+      // real size, since it may have been created (or last updated) while
+      // hidden.
+      fitNetwork(TAB_CANVAS_IDS[btn.dataset.tab]);
     });
   });
 }
