@@ -3,6 +3,7 @@ from rdflib import URIRef
 from rdflib.plugins.sparql.processor import prepareQuery
 
 from . import graphs
+from .browse import describe_resource, list_classes, list_instances
 from .sparql_queries import QUERIES, QUERIES_BY_ID
 from .viz import graph_to_vis
 
@@ -18,6 +19,33 @@ def get_graph(source):
     payload["turtle"] = graphs.read_raw_turtle(source)
     payload["source"] = source
     return jsonify(payload)
+
+
+@bp.get("/browse/<source>/classes")
+def browse_classes(source):
+    if source not in graphs.VALID_SOURCES:
+        return jsonify({"error": f"unknown graph source: {source}"}), 404
+    return jsonify(list_classes(graphs.load_graph(source)))
+
+
+@bp.get("/browse/<source>/instances")
+def browse_instances(source):
+    if source not in graphs.VALID_SOURCES:
+        return jsonify({"error": f"unknown graph source: {source}"}), 404
+    class_iri = request.args.get("class")
+    if not class_iri:
+        return jsonify({"error": "missing 'class' query parameter"}), 400
+    return jsonify(list_instances(graphs.load_graph(source), class_iri))
+
+
+@bp.get("/browse/<source>/resource")
+def browse_resource(source):
+    if source not in graphs.VALID_SOURCES:
+        return jsonify({"error": f"unknown graph source: {source}"}), 404
+    iri = request.args.get("iri")
+    if not iri:
+        return jsonify({"error": "missing 'iri' query parameter"}), 400
+    return jsonify(describe_resource(graphs.load_graph(source), iri))
 
 
 @bp.get("/queries")

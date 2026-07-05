@@ -138,6 +138,10 @@ function setupTabs() {
       document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(`panel-${btn.dataset.tab}`).classList.add("active");
+      if (btn.dataset.tab === "explore") {
+        initExploreTab();
+        return;
+      }
       const canvasId = TAB_CANVAS_IDS[btn.dataset.tab];
       if (btn.dataset.tab === "query" && !graphCache[canvasId]) {
         // First visit to the Query Console: there's nothing cached yet
@@ -243,6 +247,150 @@ async function runQuery() {
     nodeIris: body.highlighted_node_iris || [],
     edgeKeys,
   });
+}
+
+function makeCell(text) {
+  const td = document.createElement("td");
+  td.textContent = text;
+  return td;
+}
+
+function makeNumCell(text) {
+  const td = makeCell(text);
+  td.classList.add("num");
+  return td;
+}
+
+function makeLinkCell(text, onClick) {
+  const td = document.createElement("td");
+  const a = document.createElement("a");
+  a.href = "#";
+  a.textContent = text;
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    onClick();
+  });
+  td.appendChild(a);
+  return td;
+}
+
+function setTableBody(tableId, rows) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  tbody.innerHTML = "";
+  rows.forEach((row) => tbody.appendChild(row));
+  return tbody;
+}
+
+let exploreLoaded = false;
+
+async function initExploreTab() {
+  if (!exploreLoaded) {
+    exploreLoaded = true;
+    document.getElementById("explore-source").addEventListener("change", loadExploreClasses);
+    await loadExploreClasses();
+  }
+}
+
+async function loadExploreClasses() {
+  const source = document.getElementById("explore-source").value;
+  const res = await fetch(`/api/browse/${source}/classes`);
+  const classes = await res.json();
+
+  setTableBody(
+    "explore-class-table",
+    classes.map((c) => {
+      const tr = document.createElement("tr");
+      tr.appendChild(makeCell(c.label));
+      tr.appendChild(makeNumCell(String(c.count)));
+      tr.addEventListener("click", () => {
+        document.querySelectorAll("#explore-class-table tbody tr").forEach((r) => r.classList.remove("selected"));
+        tr.classList.add("selected");
+        loadExploreInstances(source, c.class, c.label);
+      });
+      return tr;
+    })
+  );
+
+  document.getElementById("explore-instances-heading").textContent = "";
+  setTableBody("explore-instance-table", []);
+  clearExploreResource();
+}
+
+async function loadExploreInstances(source, classIri, classLabel) {
+  document.getElementById("explore-instances-heading").textContent = `— ${classLabel}`;
+  const res = await fetch(`/api/browse/${source}/instances?class=${encodeURIComponent(classIri)}`);
+  const instances = await res.json();
+
+  setTableBody(
+    "explore-instance-table",
+    instances.map((inst) => {
+      const tr = document.createElement("tr");
+      tr.appendChild(makeCell(inst.label));
+      tr.addEventListener("click", () => {
+        document.querySelectorAll("#explore-instance-table tbody tr").forEach((r) => r.classList.remove("selected"));
+        tr.classList.add("selected");
+        loadExploreResource(source, inst.iri);
+      });
+      return tr;
+    })
+  );
+  clearExploreResource();
+}
+
+async function loadExploreResource(source, iri) {
+  const res = await fetch(`/api/browse/${source}/resource?iri=${encodeURIComponent(iri)}`);
+  const r = await res.json();
+
+  document.getElementById("explore-resource-heading").textContent = r.label;
+
+  const meta = document.getElementById("explore-resource-meta");
+  meta.innerHTML = "";
+  const iriLine = document.createElement("div");
+  iriLine.className = "resource-iri";
+  iriLine.textContent = r.iri;
+  meta.appendChild(iriLine);
+
+  const typesLine = document.createElement("div");
+  typesLine.className = "resource-types";
+  typesLine.textContent = r.types.length ? r.types.join(", ") : "(no type asserted in this graph)";
+  if (!r.definedHere) {
+    const badge = document.createElement("span");
+    badge.className = "external-badge";
+    badge.textContent = "referenced but not defined here";
+    typesLine.appendChild(badge);
+  }
+  meta.appendChild(typesLine);
+
+  setTableBody(
+    "explore-properties-table",
+    r.properties.map((p) => {
+      const tr = document.createElement("tr");
+      tr.appendChild(makeCell(p.predicateLabel));
+      if (p.kind === "uri") {
+        tr.appendChild(makeLinkCell(p.valueLabel, () => loadExploreResource(source, p.value)));
+      } else {
+        tr.appendChild(makeCell(p.valueLabel));
+      }
+      return tr;
+    })
+  );
+
+  setTableBody(
+    "explore-referenced-table",
+    r.referencedBy.map((ref) => {
+      const tr = document.createElement("tr");
+      tr.appendChild(makeLinkCell(ref.subjectLabel, () => loadExploreResource(source, ref.subject)));
+      tr.appendChild(makeCell(ref.predicateLabel));
+      return tr;
+    })
+  );
+}
+
+function clearExploreResource() {
+  document.getElementById("explore-resource-heading").textContent = "Select an instance";
+  document.getElementById("explore-resource-meta").innerHTML = "";
+  setTableBody("explore-properties-table", []);
+  setTableBody("explore-referenced-table", []);
 }
 
 async function init() {

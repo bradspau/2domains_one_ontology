@@ -243,3 +243,82 @@ main { padding: 1.25rem 2rem 2.5rem; }
   white-space: nowrap;
 }
 #results-table th { background: #f4f4f6; position: sticky; top: 0; }
+
+.explore-layout {
+  display: grid;
+  /* minmax(0, ...) on every track for the same reason as .query-layout -
+     these columns hold tables with long, unwrapped IRI text that would
+     otherwise inflate the grid tracks past the viewport. */
+  grid-template-columns: minmax(0, 220px) minmax(0, 240px) minmax(0, 1fr);
+  gap: 1rem;
+  height: 560px;
+}
+
+.explore-col {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  overflow: auto;
+  resize: vertical;
+  min-height: 240px;
+  padding: 0.7rem 0.8rem;
+}
+
+.explore-col label {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #666;
+  margin-bottom: 0.3rem;
+}
+.explore-col select {
+  width: 100%;
+  font-size: 0.82rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 0.8rem;
+}
+
+.explore-col h3, .explore-col h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.explore-col h4 { margin-top: 1rem; }
+#explore-instances-heading { text-transform: none; color: #222; font-weight: 600; letter-spacing: 0; }
+
+.explore-col table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 0.4rem; }
+.explore-col th, .explore-col td {
+  padding: 0.3rem 0.45rem;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+.explore-col td.num, .explore-col th.num { text-align: right; }
+.explore-col tbody tr { cursor: pointer; }
+.explore-col tbody tr:hover { background: #f4f6fb; }
+.explore-col tbody tr.selected { background: #dde8fb; }
+.explore-col a { color: #2f7de1; text-decoration: none; word-break: break-word; }
+.explore-col a:hover { text-decoration: underline; }
+
+.explore-resource .resource-iri {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  color: #888;
+  word-break: break-all;
+  margin-bottom: 0.3rem;
+}
+.explore-resource .resource-types { font-size: 0.82rem; margin-bottom: 0.6rem; }
+.external-badge {
+  display: inline-block;
+  background: #f4f4f4;
+  border: 1px dashed #999;
+  color: #666;
+  font-size: 0.7rem;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 0.4rem;
+}

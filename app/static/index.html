@@ -25,6 +25,7 @@
   <button class="tab-btn" data-tab="aggregation">Aggregation Domain</button>
   <button class="tab-btn" data-tab="merged">Merged Graph</button>
   <button class="tab-btn" data-tab="query">Query Console</button>
+  <button class="tab-btn" data-tab="explore">Class Browser</button>
 </nav>
 
 <div id="legend" class="legend">
@@ -145,6 +146,54 @@
         <div id="results-table-wrap">
           <table id="results-table"></table>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="panel-explore">
+    <p class="panel-blurb">
+      A Protégé-style browser: pick a graph, pick a class, pick an instance,
+      and see every property assertion on it in this graph — plus, since
+      that's the whole point of this demo, every triple elsewhere that
+      references it. An instance with no properties but one or more entries
+      under "Referenced by" is exactly what a dashed/gray external node
+      looks like from the inside.
+    </p>
+    <div class="explore-layout">
+      <div class="explore-col">
+        <label for="explore-source">Graph</label>
+        <select id="explore-source">
+          <option value="merged">Merged (access + aggregation)</option>
+          <option value="access">Access domain only</option>
+          <option value="aggregation">Aggregation domain only</option>
+          <option value="ontology">Ontology only</option>
+        </select>
+        <h3>Classes</h3>
+        <table id="explore-class-table">
+          <thead><tr><th>Class</th><th class="num">Count</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="explore-col">
+        <h3>Instances <span id="explore-instances-heading"></span></h3>
+        <table id="explore-instance-table">
+          <thead><tr><th>Instance</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="explore-col explore-resource">
+        <h3 id="explore-resource-heading">Select an instance</h3>
+        <div id="explore-resource-meta"></div>
+        <h4>Properties</h4>
+        <table id="explore-properties-table">
+          <thead><tr><th>Predicate</th><th>Value</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <h4>Referenced by</h4>
+        <table id="explore-referenced-table">
+          <thead><tr><th>Subject</th><th>Predicate</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
   </section>

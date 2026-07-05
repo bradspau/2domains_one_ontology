@@ -201,6 +201,7 @@ data/
 app/
   graphs.py                 loads .ttl files into rdflib Graphs, builds the merged union
   viz.py                    turns an rdflib Graph into {nodes, edges} JSON for the UI
+  browse.py                 class/instance/property-table data for the Class Browser tab
   sparql_queries.py         the canned SPARQL queries used by the Query Console
   sparql_endpoint.py        minimal SPARQL 1.1 Protocol endpoint, one per domain
   routes.py                 Flask API endpoints (see below)
@@ -233,13 +234,23 @@ i.e. it's a resource some other domain owns. This same flag is what renders
 as a dashed/gray node in the UI, and what produces zero results once you're
 looking at the merged graph.
 
-`routes.py` exposes four read endpoints and one query endpoint:
+`routes.py` exposes these endpoints:
 
 | Method & path | Purpose |
 |---|---|
 | `GET /api/graphs/<source>` | `source` ∈ `ontology, access, aggregation, merged` → `{nodes, edges, turtle}` for that view |
 | `GET /api/queries` | the canned SPARQL queries for the Query Console dropdown |
 | `POST /api/query` | body `{sparql, source}` or `{query_id}` → runs `Graph.query(...)` and returns `{columns, rows, highlighted_node_iris, highlighted_edges}` |
+| `GET /api/browse/<source>/classes` | every distinct `rdf:type` used in that graph, with instance counts |
+| `GET /api/browse/<source>/instances?class=<iri>` | every subject asserted as that type, in that graph |
+| `GET /api/browse/<source>/resource?iri=<iri>` | a Protégé-style "individual" view: every outgoing property on that IRI in that graph, plus every incoming one (`referencedBy`) |
+
+The `/api/browse/...` family (`app/browse.py`) backs the **Class Browser**
+tab. It's deliberately scoped per-graph, same as everything else here: a
+class with zero instances in a given source simply doesn't appear, and a
+resource with properties in one graph can show up with an *empty* property
+table but a populated `referencedBy` in another — which is exactly what an
+"external" node looks like from inside a tabular, non-graph view.
 
 `/api/query` only ever calls rdflib's `.query()` (the SPARQL *Query*
 grammar — SELECT/ASK/CONSTRUCT/DESCRIBE). There's no code path to
@@ -251,12 +262,17 @@ returned as a highlighted edge — that's what lights up the path in the
 Query Console's graph canvas.
 
 **Frontend (`app/static/`, vanilla JS + vendored vis-network).** A single
-page with five tabs. The four graph tabs each fetch their `/api/graphs/...`
+page with six tabs. The four graph tabs each fetch their `/api/graphs/...`
 data once on load and render it with vis-network, coloring nodes by owning
 domain (derived from the IRI's hostname) and shaping them by RDF type. The
 Query Console lets you pick a canned query or type your own SPARQL, choose
 which graph to run it against, and re-renders that graph with the query's
-highlighted nodes/edges overlaid.
+highlighted nodes/edges overlaid. The Class Browser is a three-column,
+Protégé-style view (classes → instances → a selected resource's property
+table) driven entirely by `/api/browse/...`; clicking any property value or
+"referenced by" entry that's an IRI navigates to *that* resource's own
+property table, so you can walk the graph purely through tables and links,
+no graph rendering involved.
 
 ## Federated mode: a real `SERVICE` call
 
@@ -392,6 +408,14 @@ Then open `http://127.0.0.1:5000`.
      instead of visually.
    - **⚡ Federated path trace (real SERVICE call)** — see below; requires a
      second terminal running `run_endpoints.py`.
+6. **Class Browser** — pick "Access domain only," click the **OLT** class,
+   click **OLT Central-1**, and its full property table appears on the
+   right. Now click through to one of its ports, then follow
+   `net:connectsTo` — you'll land on `t1-sw-a-p-olt1` with an empty
+   Properties table, a "referenced but not defined here" badge, and one
+   entry under "Referenced by" pointing back at the NT port you came from.
+   That's the exact same external-reference concept as the dashed/gray
+   nodes, seen as plain rows in a table instead of graph shapes.
 
 There's no caching layer anywhere in the backend: every request re-parses the
 relevant `.ttl` file straight off disk. Try editing `data/access/access.ttl`
